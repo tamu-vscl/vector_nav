@@ -32,13 +32,15 @@
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/MagneticField.h"
-#include "sensor_msgs/NavSatFix.h"
+// #include "sensor_msgs/NavSatFix.h"
 #include "nav_msgs/Odometry.h"
 #include "sensor_msgs/Temperature.h"
 #include "sensor_msgs/FluidPressure.h"
 #include "std_srvs/Empty.h"
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <ros/console.h>
+#include <rosflight_msgs/GNSS.h>
 
 ros::Publisher pubIMU, pubMag, pubGPS, pubOdom, pubTemp, pubPres;
 ros::ServiceServer resetOdomSrv;
@@ -103,13 +105,13 @@ int main(int argc, char *argv[])
 {
 
     // ROS node init
-    ros::init(argc, argv, "vectornav");
+    ros::init(argc, argv, "vector_nav");
     ros::NodeHandle n;
     ros::NodeHandle pn("~");
 
     pubIMU = n.advertise<sensor_msgs::Imu>("vectornav/IMU", 1000);
     pubMag = n.advertise<sensor_msgs::MagneticField>("vectornav/Mag", 1000);
-    pubGPS = n.advertise<sensor_msgs::NavSatFix>("vectornav/GPS", 1000);
+    pubGPS = n.advertise<rosflight_msgs::GNSS>("vn_gnss", 1000);
     pubOdom = n.advertise<nav_msgs::Odometry>("vectornav/Odom", 1000);
     pubTemp = n.advertise<sensor_msgs::Temperature>("vectornav/Temp", 1000);
     pubPres = n.advertise<sensor_msgs::FluidPressure>("vectornav/Pres", 1000);
@@ -231,11 +233,18 @@ int main(int argc, char *argv[])
             | COMMONGROUP_MAGPRES,
             TIMEGROUP_NONE,
             IMUGROUP_NONE,
-            GPSGROUP_NONE,
+            GPSGROUP_FIX
+            | GPSGROUP_POSECEF
+            | GPSGROUP_VELECEF
+            | GPSGROUP_POSU
+            | GPSGROUP_VELU,
             ATTITUDEGROUP_YPRU, //<-- returning yaw pitch roll uncertainties
             INSGROUP_INSSTATUS
             | INSGROUP_POSLLA
             | INSGROUP_POSECEF
+            | INSGROUP_VELECEF
+            | INSGROUP_POSU
+            | INSGROUP_VELU
             | INSGROUP_VELBODY
             | INSGROUP_ACCELECEF);
 
@@ -378,14 +387,28 @@ void BinaryAsyncMessageReceived(void* userData, Packet& p, size_t index)
     // GPS
     if (user_data.device_family != VnSensor::Family::VnSensor_Family_Vn100)
     {
-        vec3d lla = cd.positionEstimatedLla();
+        // ROS_INFO("got here");
+        vec3d pos = cd.positionGpsEcef();
+        vec3f vel = cd.velocityGpsEcef();
+        vec3f posU = cd.positionUncertaintyGpsNed();
+        float velU = cd.velocityUncertaintyGps();
 
-        sensor_msgs::NavSatFix msgGPS;
+        GpsFix fix = cd.fix();
+
+        // ROS_INFO("%d",(int)fix);
+
+        rosflight_msgs::GNSS msgGPS;
         msgGPS.header.stamp = msgIMU.header.stamp;
-        msgGPS.header.frame_id = msgIMU.header.frame_id;
-        msgGPS.latitude = lla[0];
-        msgGPS.longitude = lla[1];
-        msgGPS.altitude = lla[2];
+        msgGPS.position[0] = pos[0];
+        msgGPS.position[1] = pos[1];
+        msgGPS.position[2] = pos[2];
+        msgGPS.velocity[0] = vel[0];
+        msgGPS.velocity[1] = vel[1];
+        msgGPS.velocity[2] = vel[2];
+        msgGPS.horizontal_accuracy = sqrt(posU[0]*posU[0]+posU[1]*posU[1]);
+        msgGPS.vertical_accuracy = posU[2];
+        msgGPS.speed_accuracy = velU;
+        msgGPS.fix = (int)fix;
         pubGPS.publish(msgGPS);
 
         // Odometry

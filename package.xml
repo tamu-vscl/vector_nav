@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>vectornav</name>
+  <name>vector_nav</name>
   <version>2.0.0</version>
   <description>ROS interface for the VectorNav INS/GPS</description>
 
@@ -13,19 +13,21 @@
   <author email="dereck@gmail.com">Dereck Wonnacott</author>
 
   <buildtool_depend>catkin</buildtool_depend>
-  
-  <build_depend>roscpp</build_depend>  
+
+  <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
+  <build_depend>rosflight_msgs</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>nav_msgs</run_depend>
+  <run_depend>rosflight_msgs</run_depend>
 
 
   <!-- Maintainer Note:
       The vnccpplib directory is from http://www.vectornav.com/support/downloads
-      I removed the version string from the directory name, sanitized file 
+      I removed the version string from the directory name, sanitized file
       permissions, and removed all but the src and include directories.
    -->
 </package>

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+	<node pkg="vector_nav" type="vnpub" name="vector_nav" output="screen" >
+      <rosparam command="load" file="$(find vector_nav)/params/vn100.yaml" />
+	</node>
+
+</launch>
