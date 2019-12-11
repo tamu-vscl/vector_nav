@@ -41,6 +41,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <ros/console.h>
 #include <rosflight_msgs/GNSS.h>
+#include <rosflight_msgs/Barometer.h>
 
 ros::Publisher pubIMU, pubMag, pubGPS, pubOdom, pubTemp, pubPres;
 ros::ServiceServer resetOdomSrv;
@@ -114,7 +115,7 @@ int main(int argc, char *argv[])
     pubGPS = n.advertise<rosflight_msgs::GNSS>("vn_gnss", 1000);
     pubOdom = n.advertise<nav_msgs::Odometry>("vectornav/Odom", 1000);
     pubTemp = n.advertise<sensor_msgs::Temperature>("vectornav/Temp", 1000);
-    pubPres = n.advertise<sensor_msgs::FluidPressure>("vectornav/Pres", 1000);
+    pubPres = n.advertise<rosflight_msgs::Barometer>("baro/data", 1000);
 
     resetOdomSrv = n.advertiseService("reset_odom", resetOdom);
 
@@ -461,9 +462,10 @@ void BinaryAsyncMessageReceived(void* userData, Packet& p, size_t index)
     }
 
     // Temperature
+    float temp=0;
     if (cd.hasTemperature())
     {
-        float temp = cd.temperature();
+        temp = cd.temperature();
 
         sensor_msgs::Temperature msgTemp;
         msgTemp.header.stamp = msgIMU.header.stamp;
@@ -477,10 +479,10 @@ void BinaryAsyncMessageReceived(void* userData, Packet& p, size_t index)
     {
         float pres = cd.pressure();
 
-        sensor_msgs::FluidPressure msgPres;
+        rosflight_msgs::Barometer msgPres;
         msgPres.header.stamp = msgIMU.header.stamp;
-        msgPres.header.frame_id = msgIMU.header.frame_id;
-        msgPres.fluid_pressure = pres;
+        msgPres.pressure = pres;
+        msgPres.temperature = temp;
         pubPres.publish(msgPres);
     }
 }
